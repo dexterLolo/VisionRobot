@@ -9,7 +9,7 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 
 from custom_layers import yolov4_neck, yolov4_head, nms
-from utils import load_weights, get_detection_data, draw_bbox, voc_ap, draw_plot_func, read_txt_to_list
+from utils import load_weights, get_detection_data, draw_bbox, voc_ap, draw_plot_func, read_txt_to_list, giveText
 from config import yolo_config
 from loss import yolo_loss
 
@@ -533,25 +533,13 @@ class Yolov4(object):
         draw_bbox(raw_img, detections, cmap=self.class_color, random_color=True)
         return detections
     
-    def textReturn(self, annotation_path, pred_folder_path, img_folder_path, bs=2):
-        with open(annotation_path) as file:
-            img_paths = [os.path.join(img_folder_path, line.split(' ')[0].split(os.sep)[-1]) for line in file]
-            # print(img_paths[:20])
-            for batch_idx in tqdm(range(0, len(img_paths), bs)):
-                # print(len(img_paths), batch_idx, batch_idx*bs, (batch_idx+1)*bs)
-                paths = img_paths[batch_idx:batch_idx+bs]
-                # print(paths)
-                # read and process img
-                imgs = np.zeros((len(paths), *self.img_size))
-                raw_img_shapes = []
-                for j, path in enumerate(paths):
-                    img = cv2.imread(path)
-                    raw_img_shapes.append(img.shape)
-                    img = self.preprocess_img(img)
-                    imgs[j] = img
-                    # process batch output
-                    b_boxes, b_scores, b_classes, b_valid_detections = self.inference_model.predict(imgs)
-                    for k in range(len(paths)):
-                        classes = b_classes[k, :num_boxes]
-                        cls_names = [self.class_names[int(c)] for c in classes]
-                        return(cls_names)
+    def textReturn(self, raw_img, random_color=True, plot_img=False, figsize=(10, 10), show_text=True, return_output=False):
+        print('img shape: ', raw_img.shape)
+        img = self.preprocess_img(raw_img)
+        imgs = np.expand_dims(img, axis=0)
+        pred_output = self.inference_model.predict(imgs)
+        textSalida = giveText(img=raw_img,
+                                        model_outputs=pred_output,
+                                        class_names=self.class_names)
+        
+        return(textSalida)
